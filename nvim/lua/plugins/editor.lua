@@ -117,6 +117,8 @@ return {
       formatters_by_ft = {
         lua        = { "stylua" },
         python     = { "isort", "black" },
+        -- ruff can replace isort+black; uncomment to prefer it:
+        -- python  = { "ruff_fix", "ruff_format" },
         go         = { "goimports", "gofmt" },
         sh         = { "shfmt" },
         bash       = { "shfmt" },
@@ -153,12 +155,13 @@ return {
     config = function()
       local lint = require("lint")
       lint.linters_by_ft = {
-        sh         = { "shellcheck" },
-        bash       = { "shellcheck" },
-        dockerfile = { "hadolint" },
-        terraform  = { "tflint" },
-        yaml       = { "yamllint" },
-        python     = { "flake8" },
+        sh           = { "shellcheck" },
+        bash         = { "shellcheck" },
+        dockerfile   = { "hadolint" },
+        terraform    = { "tflint" },
+        yaml         = { "yamllint" },
+        ["yaml.ansible"] = { "ansiblelint" },  -- Ansible playbooks/roles
+        python       = { "flake8" },
       }
 
       -- Lint on enter, write, and leaving insert

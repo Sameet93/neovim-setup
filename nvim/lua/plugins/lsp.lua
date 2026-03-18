@@ -41,6 +41,10 @@ return {
         "yamllint",       -- YAML linter
         "flake8",         -- Python linter
         "ansiblelint",    -- Ansible linter
+        "ruff",           -- Fast Python linter/formatter (Rust-based)
+
+        -- ── Debug adapters ─────────────────────────────────────────────────
+        "debugpy",        -- Python debug adapter (used by nvim-dap-python)
       },
       ui = {
         border = "rounded",
@@ -98,6 +102,7 @@ return {
       "williamboman/mason-lspconfig.nvim",
       "folke/neodev.nvim",
       "hrsh7th/cmp-nvim-lsp",
+      "b0o/SchemaStore.nvim",  -- comprehensive JSON/YAML schemas for jsonls + yamlls
     },
     config = function()
 
@@ -274,45 +279,42 @@ return {
 
         -- YAML (Kubernetes, Ansible, GitHub Actions, Docker Compose, etc.)
         yamlls = {
+          -- SchemaStore provides 500+ schemas; injected via on_new_config so the
+          -- plugin is guaranteed to be loaded before the server starts.
+          on_new_config = function(new_config)
+            local ok, ss = pcall(require, "schemastore")
+            if ok then
+              new_config.settings.yaml.schemas = ss.yaml.schemas()
+            end
+          end,
           settings = {
             yaml = {
-              keyOrdering   = false,
-              format        = { enable = true },
-              validate      = true,
-              schemaStore   = { enable = false, url = "" },
-              schemas       = {
-                -- Common DevOps schemas
-                kubernetes = { "/*.yaml", "/*.yml" },
-                ["https://json.schemastore.org/github-workflow.json"]     = ".github/workflows/*.{yml,yaml}",
-                ["https://json.schemastore.org/github-action.json"]       = ".github/action.{yml,yaml}",
-                ["https://json.schemastore.org/ansible-playbook.json"]    = "**/playbook*.{yml,yaml}",
-                ["https://json.schemastore.org/ansible-role-2.9.json"]    = "**/tasks/*.{yml,yaml}",
-                ["https://json.schemastore.org/docker-compose.json"]      = "**/docker-compose*.{yml,yaml}",
-                ["https://json.schemastore.org/kustomization.json"]       = "**/kustomization.{yml,yaml}",
-                ["https://json.schemastore.org/helmfile.json"]            = "**/helmfile.{yml,yaml}",
-                ["https://json.schemastore.org/circleciconfig.json"]      = ".circleci/config.{yml,yaml}",
-              },
+              keyOrdering = false,
+              format      = { enable = true },
+              validate    = true,
+              -- Disable built-in schemaStore; SchemaStore.nvim replaces it
+              schemaStore = { enable = false, url = "" },
             },
           },
         },
 
         -- JSON
         jsonls = {
+          -- SchemaStore provides 500+ JSON schemas (package.json, tsconfig, etc.)
+          on_new_config = function(new_config)
+            local ok, ss = pcall(require, "schemastore")
+            if ok then
+              new_config.settings.json.schemas = ss.json.schemas()
+            else
+              new_config.settings.json.schemas = new_config.settings.json.schemas or {}
+            end
+          end,
           settings = {
             json = {
               format   = { enable = true },
               validate = { enable = true },
-              schemas  = {
-                { fileMatch = { "package.json" },   url = "https://json.schemastore.org/package.json" },
-                { fileMatch = { "tsconfig*.json" }, url = "https://json.schemastore.org/tsconfig.json" },
-                { fileMatch = { ".eslintrc.json", ".eslintrc" }, url = "https://json.schemastore.org/eslintrc.json" },
-                { fileMatch = { ".prettierrc" },    url = "https://json.schemastore.org/prettierrc.json" },
-              },
             },
           },
-          on_new_config = function(new_config)
-            new_config.settings.json.schemas = new_config.settings.json.schemas or {}
-          end,
         },
 
         -- Terraform / HCL

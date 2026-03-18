@@ -8,7 +8,7 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 
 1. [Features](#features)
 2. [Prerequisites](#prerequisites)
-3. [Installation](#installation)
+3. [Installation](#installation) — [Quick Install](#quick-install-recommended) · [Manual](#manual-installation)
 4. [Configuration Structure](#configuration-structure)
 5. [Plugin Overview](#plugin-overview)
 6. [Keybinding Reference](#keybinding-reference)
@@ -74,28 +74,58 @@ pip3 install black isort flake8 ansiblelint yamllint
 
 ## Installation
 
-### Step 1 — Back up your existing config (if any)
+### Quick Install (recommended)
+
+Clone the repo and run the install script — it handles everything:
 
 ```bash
-mv ~/.config/nvim ~/.config/nvim.bak
-mv ~/.local/share/nvim ~/.local/share/nvim.bak
-mv ~/.local/state/nvim ~/.local/state/nvim.bak
-mv ~/.cache/nvim ~/.cache/nvim.bak
+git clone https://github.com/your-username/neovim-setup.git ~/neovim-setup
+cd ~/neovim-setup
+./install.sh
 ```
 
-### Step 2 — Copy this config to your Neovim directory
+The script will:
+- Install **Neovim** (via Homebrew on macOS or apt/dnf/pacman on Linux)
+- Install core dependencies: git, make, ripgrep, fd, Node.js, Python 3
+- **Back up** any existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim`, and `~/.cache/nvim` with a timestamp suffix (e.g. `.bak.20260317_142500`)
+- Copy the config to `~/.config/nvim`
+- Offer to install optional DevOps CLI tools (Terraform, Ansible, Helm, kubectl, k9s, lazygit, etc.)
+
+**Symlink mode** — keep the config living inside the cloned repo so any edits are version-controlled:
+
+```bash
+./install.sh --symlink
+```
+
+> Run `./install.sh --help` to see all options.
+
+---
+
+### Manual Installation
+
+#### Step 1 — Back up your existing config (if any)
+
+```bash
+STAMP=$(date +%Y%m%d_%H%M%S)
+mv ~/.config/nvim        ~/.config/nvim.bak.$STAMP        2>/dev/null || true
+mv ~/.local/share/nvim   ~/.local/share/nvim.bak.$STAMP   2>/dev/null || true
+mv ~/.local/state/nvim   ~/.local/state/nvim.bak.$STAMP   2>/dev/null || true
+mv ~/.cache/nvim         ~/.cache/nvim.bak.$STAMP         2>/dev/null || true
+```
+
+#### Step 2 — Copy this config to your Neovim directory
 
 **Option A: Copy directly**
 ```bash
-cp -r "/path/to/NeoVim Setup/nvim" ~/.config/nvim
+cp -r "/path/to/neovim-setup/nvim" ~/.config/nvim
 ```
 
 **Option B: Symlink (edits go directly to this repo)**
 ```bash
-ln -s "/path/to/NeoVim Setup/nvim" ~/.config/nvim
+ln -s "/path/to/neovim-setup/nvim" ~/.config/nvim
 ```
 
-### Step 3 — Open Neovim
+#### Step 3 — Open Neovim
 
 ```bash
 nvim
@@ -109,7 +139,7 @@ On first launch:
 
 > You can watch plugin install progress with `:Lazy` and LSP install progress with `:Mason`.
 
-### Step 4 — Verify installation
+#### Step 4 — Verify installation
 
 ```vim
 :checkhealth          " Check for any missing dependencies
