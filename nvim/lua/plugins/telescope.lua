@@ -12,15 +12,17 @@ return {
       {
         "nvim-telescope/telescope-fzf-native.nvim",
         build   = "make",
+        -- Only enable if make is available; on locked-down work machines
+        -- the C compilation may be blocked — telescope still works without it.
         enabled = vim.fn.executable("make") == 1,
         config  = function()
-          require("telescope").load_extension("fzf")
+          pcall(require("telescope").load_extension, "fzf")
         end,
       },
       {
         "nvim-telescope/telescope-ui-select.nvim",
         config = function()
-          require("telescope").load_extension("ui-select")
+          pcall(require("telescope").load_extension, "ui-select")
         end,
       },
       "nvim-tree/nvim-web-devicons",
@@ -100,10 +102,22 @@ return {
         pickers = {
           find_files = {
             hidden = true,
-            find_command = { "fd", "--type", "f", "--strip-cwd-prefix", "--hidden", "--follow" },
+            -- Only force fd if it is actually installed. When omitted, Telescope
+            -- uses its own fallback chain: fd → rg --files → find (the last one
+            -- is always available). Hardcoding fd breaks find_files on machines
+            -- where fd is not in PATH (e.g. locked-down work environments).
+            find_command = vim.fn.executable("fd") == 1
+              and { "fd", "--type", "f", "--strip-cwd-prefix", "--hidden", "--follow" }
+              or (vim.fn.executable("rg") == 1
+                and { "rg", "--files", "--hidden", "--glob", "!.git/" }
+                or nil),
           },
           live_grep = {
-            additional_args = { "--hidden", "--glob", "!.git/" },
+            -- Only pass --hidden if rg supports it (it always does, but guard
+            -- against rg being absent; Telescope will error with a clear message).
+            additional_args = vim.fn.executable("rg") == 1
+              and { "--hidden", "--glob", "!.git/" }
+              or {},
           },
           buffers = {
             sort_lastused = true,
