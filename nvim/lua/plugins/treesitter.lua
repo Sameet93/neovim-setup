@@ -33,8 +33,11 @@ return {
         "nix",         -- Nix expressions
       },
 
-      -- Auto-install missing parsers when opening a file
-      auto_install = true,
+      -- Auto-install missing parsers only when tree-sitter CLI is available.
+      -- Without it, nvim-treesitter cannot compile parsers from source and
+      -- emits "tree-sitter-cli vX.Y.Z is required". Parsers in
+      -- ensure_installed are always fetched as pre-built binaries via git.
+      auto_install = vim.fn.executable("tree-sitter") == 1,
 
       highlight    = {
         enable                            = true,
