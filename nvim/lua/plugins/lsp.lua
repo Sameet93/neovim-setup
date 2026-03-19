@@ -72,7 +72,7 @@ return {
       mr.refresh(function()
         for _, tool in ipairs(opts.ensure_installed) do
           local ok, p = pcall(mr.get_package, tool)
-          if ok and not p:is_installed() then
+          if ok and not p:is_installed() and not p:is_installing() then
             p:install()
           end
         end
@@ -90,8 +90,16 @@ return {
     },
   },
 
-  -- ─── Neovim lua API completions ──────────────────────────────────────────
-  { "folke/neodev.nvim", opts = {} },
+  -- ─── Neovim lua API completions (replaces archived neodev.nvim) ───────────
+  {
+    "folke/lazydev.nvim",
+    ft   = "lua",
+    opts = {
+      library = {
+        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+      },
+    },
+  },
 
   -- ─── Core LSP configuration ──────────────────────────────────────────────
   {
@@ -100,7 +108,7 @@ return {
     dependencies = {
       "williamboman/mason.nvim",
       "williamboman/mason-lspconfig.nvim",
-      "folke/neodev.nvim",
+      "folke/lazydev.nvim",
       "hrsh7th/cmp-nvim-lsp",
       "b0o/SchemaStore.nvim",  -- comprehensive JSON/YAML schemas for jsonls + yamlls
     },

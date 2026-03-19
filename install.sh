@@ -13,7 +13,7 @@
 #   ./install.sh --symlink     # symlink mode (edits reflect back to the repo)
 #   ./install.sh --help        # show help
 #
-# Requirements: bash ≥ 4, git, curl or brew (macOS)
+# Requirements: bash >= 3.2, git, curl or brew (macOS)
 # =============================================================================
 
 set -euo pipefail
@@ -72,10 +72,12 @@ cmd_exists() { command -v "$1" &>/dev/null; }
 # ─── Helper: prompt yes/no ───────────────────────────────────────────────────
 ask() {
   # ask <question> -- returns 0 (yes) or 1 (no)
-  local answer
+  # Uses tr for lowercase to stay compatible with bash 3.2 (macOS default)
+  local answer answer_lc
   while true; do
     read -r -p "$1 [y/N] " answer
-    case "${answer,,}" in
+    answer_lc="$(echo "$answer" | tr '[:upper:]' '[:lower:]')"
+    case "$answer_lc" in
       y|yes) return 0 ;;
       n|no|"") return 1 ;;
       *) echo "Please enter y or n." ;;
@@ -90,7 +92,7 @@ header "Neovim installation"
 
 install_neovim_macos() {
   if cmd_exists brew; then
-    info "Installing Neovim via Homebrew…"
+    info "Installing Neovim via Homebrew..."
     brew install neovim
   else
     die "Homebrew not found. Install it from https://brew.sh then re-run this script."
@@ -100,17 +102,17 @@ install_neovim_macos() {
 install_neovim_linux() {
   # Prefer the official AppImage for a recent version; fall back to distro pkg.
   if cmd_exists apt-get; then
-    info "Installing Neovim via apt (may not be the latest — consider the AppImage)…"
+    info "Installing Neovim via apt (may not be the latest -- consider the AppImage)..."
     sudo apt-get update -qq
     sudo apt-get install -y neovim
   elif cmd_exists dnf; then
-    info "Installing Neovim via dnf…"
+    info "Installing Neovim via dnf..."
     sudo dnf install -y neovim
   elif cmd_exists pacman; then
-    info "Installing Neovim via pacman…"
+    info "Installing Neovim via pacman..."
     sudo pacman -Sy --noconfirm neovim
   elif cmd_exists snap; then
-    info "Installing Neovim via snap (edge = latest stable)…"
+    info "Installing Neovim via snap (edge = latest stable)..."
     sudo snap install nvim --classic --channel=latest/stable
   else
     die "No supported package manager found (apt/dnf/pacman/snap). Install Neovim manually from https://neovim.io"
@@ -127,12 +129,12 @@ if cmd_exists nvim; then
   if [[ "$NVIM_MAJOR" -lt 1 ]] && [[ "$NVIM_MINOR" -lt 10 ]]; then
     warn "This config requires Neovim ≥ 0.10. Your version may be too old."
     if ask "Attempt to upgrade Neovim now?"; then
-      [[ "$OS" == "macos" ]] && install_neovim_macos || install_neovim_linux
+      if [[ "$OS" == "macos" ]]; then install_neovim_macos; else install_neovim_linux; fi
     fi
   fi
 else
-  info "Neovim not found — installing…"
-  [[ "$OS" == "macos" ]] && install_neovim_macos || install_neovim_linux
+  info "Neovim not found -- installing..."
+  if [[ "$OS" == "macos" ]]; then install_neovim_macos; else install_neovim_linux; fi
   cmd_exists nvim || die "Neovim installation failed. Please install it manually."
   success "Neovim installed: $(nvim --version | head -1)"
 fi
@@ -143,21 +145,27 @@ fi
 header "Core dependencies"
 
 install_pkg_macos() {
-  local pkg="$1"; local formula="${2:-$1}"
+  local pkg
+  local formula
+  pkg="$1"
+  formula="${2:-$1}"
   if cmd_exists "$pkg"; then
     success "$pkg already installed"
   else
-    info "Installing $pkg…"
+    info "Installing $pkg..."
     brew install "$formula"
   fi
 }
 
 install_pkg_linux() {
-  local pkg="$1"; local apt_pkg="${2:-$1}"
+  local pkg
+  local apt_pkg
+  pkg="$1"
+  apt_pkg="${2:-$1}"
   if cmd_exists "$pkg"; then
     success "$pkg already installed"
   else
-    info "Installing $pkg…"
+    info "Installing $pkg..."
     if cmd_exists apt-get; then
       sudo apt-get install -y "$apt_pkg"
     elif cmd_exists dnf; then
@@ -165,12 +173,18 @@ install_pkg_linux() {
     elif cmd_exists pacman; then
       sudo pacman -Sy --noconfirm "$apt_pkg"
     else
-      warn "Cannot auto-install $pkg — please install it manually."
+      warn "Cannot auto-install $pkg -- please install it manually."
     fi
   fi
 }
 
-install_pkg() { [[ "$OS" == "macos" ]] && install_pkg_macos "$@" || install_pkg_linux "$@"; }
+install_pkg() {
+  if [[ "$OS" == "macos" ]]; then
+    install_pkg_macos "$@"
+  else
+    install_pkg_linux "$@"
+  fi
+}
 
 # git is almost always present; check anyway
 install_pkg git git
@@ -256,7 +270,12 @@ echo "  Skip any you have already installed or don't need."
 echo ""
 
 install_devops_tool() {
-  local cmd="$1"; local pkg="${2:-$1}"; local desc="$3"
+  local cmd
+  local pkg
+  local desc
+  cmd="$1"
+  pkg="${2:-$1}"
+  desc="${3:-}"
   if cmd_exists "$cmd"; then
     success "$cmd already installed — skipping"
     return
@@ -281,16 +300,30 @@ install_devops_tool "hadolint"  "hadolint"   "Dockerfile linter"
 install_devops_tool "tflint"    "tflint"     "Terraform linter"
 
 # pip-based Python DevOps tools
+# Check by CLI command name; pip package for ansiblelint is "ansible-lint"
 PIP_TOOLS=()
-for pt in black isort flake8 yamllint ansiblelint; do
-  python3 -c "import ${pt//-/_}" 2>/dev/null || PIP_TOOLS+=("$pt")
-done
+PIP_PKGS=()
 
-if [[ ${#PIP_TOOLS[@]} -gt 0 ]]; then
+_check_pip_tool() {
+  local cli="$1"
+  local pkg="$2"
+  if ! cmd_exists "$cli"; then
+    PIP_TOOLS+=("$cli")
+    PIP_PKGS+=("$pkg")
+  fi
+}
+
+_check_pip_tool black       black
+_check_pip_tool isort       isort
+_check_pip_tool flake8      flake8
+_check_pip_tool yamllint    yamllint
+_check_pip_tool ansible-lint ansible-lint
+
+if [[ ${#PIP_PKGS[@]} -gt 0 ]]; then
   echo ""
   info "The following Python tools are not installed: ${PIP_TOOLS[*]}"
-  if ask "  Install them via pip3 (${PIP_TOOLS[*]})?"; then
-    pip3 install --user "${PIP_TOOLS[@]}"
+  if ask "  Install them via pip3 (${PIP_PKGS[*]})?"; then
+    pip3 install --user "${PIP_PKGS[@]}"
     success "Python tools installed"
   fi
 else

@@ -1,57 +1,33 @@
 -- ============================================================================
--- Colorscheme: Catppuccin Mocha
+-- Colorscheme: Tokyo Night
 -- ============================================================================
 
 return {
   {
-    "catppuccin/nvim",
-    name     = "catppuccin",
+    "folke/tokyonight.nvim",
     priority = 1000, -- load before all other plugins
     opts = {
-      flavour          = "mocha",
-      background       = { light = "latte", dark = "mocha" },
-      transparent_background = false,
-      show_end_of_buffer     = false,
-      term_colors            = true,
-      dim_inactive = {
-        enabled    = false,
-        shade      = "dark",
-        percentage = 0.15,
-      },
+      style           = "night",   -- night | storm | day | moon
+      light_style     = "day",
+      transparent     = false,
+      terminal_colors = true,
       styles = {
-        comments    = { "italic" },
-        conditionals = { "italic" },
-        keywords    = { "bold" },
+        comments    = { italic = true },
+        keywords    = { bold   = true },
         functions   = {},
         variables   = {},
+        sidebars    = "dark",
+        floats      = "dark",
       },
-      integrations = {
-        cmp             = true,
-        gitsigns        = true,
-        neotree         = true,
-        telescope       = { enabled = true },
-        treesitter      = true,
-        notify          = true,
-        lsp_trouble     = true,
-        which_key       = true,
-        indent_blankline = { enabled = true, scope_color = "lavender", colored_indent_levels = false },
-        bufferline      = true,
-        mason           = true,
-        noice           = true,
-        mini            = { enabled = true },
-        native_lsp = {
-          enabled       = true,
-          virtual_text  = { errors = { "italic" }, hints = { "italic" }, warnings = { "italic" }, information = { "italic" } },
-          underlines    = { errors = { "underline" }, hints = { "underline" }, warnings = { "underline" }, information = { "underline" } },
-          inlay_hints   = { background = true },
-        },
-        illuminate = { enabled = true, lsp = false },
-        ufo        = true,
-      },
+      sidebars = { "qf", "help", "terminal", "neo-tree", "trouble", "lazy", "mason" },
+      day_brightness       = 0.3,
+      hide_inactive_statusline = false,
+      dim_inactive         = false,
+      lualine_bold         = true,
     },
     config = function(_, opts)
-      require("catppuccin").setup(opts)
-      vim.cmd.colorscheme("catppuccin")
+      require("tokyonight").setup(opts)
+      vim.cmd.colorscheme("tokyonight")
     end,
   },
 }

@@ -95,8 +95,8 @@ opt.listchars     = {
 opt.fillchars = {
   eob       = " ",   -- no ~ on empty lines
   fold      = " ",
-  foldopen  = "",
-  foldclose = "",
+  foldopen  = "▾",
+  foldclose = "▸",
   foldsep   = " ",
 }
 

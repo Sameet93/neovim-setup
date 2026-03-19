@@ -8,16 +8,19 @@ return {
   {
     "nvim-lualine/lualine.nvim",
     event        = "VeryLazy",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    opts = function()
+    dependencies = { "nvim-tree/nvim-web-devicons", "folke/tokyonight.nvim" },
+    config = function()
       local icons = {
         diagnostics = { Error = " ", Warn = " ", Hint = " ", Info = " " },
         git         = { added = " ", modified = " ", removed = " " },
       }
 
-      return {
+      -- Use tokyonight theme; falls back to auto if not yet loaded (e.g. first install)
+      local theme = pcall(require, "tokyonight") and "tokyonight" or "auto"
+
+      require("lualine").setup({
         options = {
-          theme            = "catppuccin",
+          theme            = theme,
           globalstatus     = true,
           component_separators = { left = "|", right = "|" },
           section_separators  = { left = "", right = "" },
@@ -74,7 +77,7 @@ return {
           },
         },
         extensions = { "neo-tree", "lazy", "toggleterm", "trouble", "mason" },
-      }
+      })
     end,
   },
 
