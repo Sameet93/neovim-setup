@@ -80,13 +80,17 @@ return {
     end,
   },
 
-  -- ─── Bridge between Mason and lspconfig ──────────────────────────────────
+  -- ─── Bridge: auto-enable Mason-installed servers via vim.lsp.enable() ─────
   {
     "williamboman/mason-lspconfig.nvim",
-    lazy         = true,
     dependencies = { "williamboman/mason.nvim" },
     opts = {
-      automatic_installation = true,
+      -- automatic_enable = true is the default (v2): calls vim.lsp.enable()
+      -- for each installed LSP server automatically.
+      -- Exclude ruff from auto-enable (used as linter via nvim-lint, not LSP)
+      automatic_enable = {
+        exclude = { "ruff" },
+      },
     },
   },
 
@@ -101,7 +105,7 @@ return {
     },
   },
 
-  -- ─── Core LSP configuration ──────────────────────────────────────────────
+  -- ─── Core LSP configuration (Neovim 0.11 vim.lsp.config API) ──────────────
   {
     "neovim/nvim-lspconfig",
     event        = { "BufReadPre", "BufNewFile" },
@@ -205,172 +209,150 @@ return {
         })
       end
 
-      -- ── Server definitions ───────────────────────────────────────────────
-      local servers = {
+      -- ── Global config: capabilities + on_attach applied to every server ────
+      -- vim.lsp.config('*', ...) is a Neovim 0.11 wildcard that merges into
+      -- every server config before vim.lsp.enable() is called.
+      vim.lsp.config("*", {
+        capabilities = capabilities,
+        on_attach    = on_attach,
+      })
 
-        -- Lua
-        lua_ls = {
-          settings = {
-            Lua = {
-              runtime   = { version = "LuaJIT" },
-              workspace = { checkThirdParty = false, library = { vim.env.VIMRUNTIME } },
-              telemetry = { enable  = false },
-              diagnostics = { globals = { "vim" } },
-              completion  = { callSnippet = "Replace" },
+      -- ── Per-server settings ───────────────────────────────────────────────
+      -- Only settings/overrides are needed here; cmd/filetypes/root_dir are
+      -- provided by nvim-lspconfig's bundled lsp/ config files.
+
+      -- Lua
+      vim.lsp.config("lua_ls", {
+        settings = {
+          Lua = {
+            runtime     = { version = "LuaJIT" },
+            workspace   = { checkThirdParty = false, library = { vim.env.VIMRUNTIME } },
+            telemetry   = { enable = false },
+            diagnostics = { globals = { "vim" } },
+            completion  = { callSnippet = "Replace" },
+          },
+        },
+      })
+
+      -- Bash / Shell (add zsh to default filetypes)
+      vim.lsp.config("bashls", {
+        filetypes = { "sh", "bash", "zsh" },
+        settings  = {
+          bashIde = { globPattern = "**/*@(.sh|.inc|.bash|.command)" },
+        },
+      })
+
+      -- Python
+      vim.lsp.config("pyright", {
+        settings = {
+          python = {
+            analysis = {
+              autoSearchPaths        = true,
+              useLibraryCodeForTypes = true,
+              diagnosticMode         = "workspace",
+              typeCheckingMode       = "basic",
             },
           },
         },
+      })
 
-        -- Bash / Shell
-        bashls = {
-          filetypes = { "sh", "bash", "zsh" },
-          settings  = {
-            bashIde = {
-              globPattern = "**/*@(.sh|.inc|.bash|.command)",
+      -- Go
+      vim.lsp.config("gopls", {
+        settings = {
+          gopls = {
+            gofumpt    = true,
+            codelenses = {
+              gc_details         = false,
+              generate           = true,
+              regenerate_cgo     = true,
+              run_govulncheck    = true,
+              test               = true,
+              tidy               = true,
+              upgrade_dependency = true,
+              vendor             = true,
+            },
+            hints = {
+              assignVariableTypes    = true,
+              compositeLiteralFields = true,
+              compositeLiteralTypes  = true,
+              constantValues         = true,
+              functionTypeParameters = true,
+              parameterNames         = true,
+              rangeVariableTypes     = true,
+            },
+            analyses = {
+              fieldalignment = true,
+              nilness        = true,
+              unusedparams   = true,
+              unusedwrite    = true,
+              useany         = true,
+            },
+            usePlaceholders    = true,
+            completeUnimported = true,
+            staticcheck        = true,
+            directoryFilters   = { "-.git", "-.vscode", "-.idea", "-node_modules" },
+            semanticTokens     = true,
+          },
+        },
+      })
+
+      -- YAML (500+ schemas from SchemaStore.nvim)
+      vim.lsp.config("yamlls", {
+        settings = {
+          yaml = {
+            keyOrdering = false,
+            format      = { enable = true },
+            validate    = true,
+            schemaStore = { enable = false, url = "" },  -- replaced by SchemaStore.nvim
+            schemas     = (function()
+              local ok, ss = pcall(require, "schemastore")
+              return ok and ss.yaml.schemas() or {}
+            end)(),
+          },
+        },
+      })
+
+      -- JSON (500+ schemas from SchemaStore.nvim)
+      vim.lsp.config("jsonls", {
+        settings = {
+          json = {
+            format   = { enable = true },
+            validate = { enable = true },
+            schemas  = (function()
+              local ok, ss = pcall(require, "schemastore")
+              return ok and ss.json.schemas() or {}
+            end)(),
+          },
+        },
+      })
+
+      -- Ansible (yaml.ansible filetype only)
+      vim.lsp.config("ansiblels", {
+        filetypes = { "yaml.ansible" },
+        settings  = {
+          ansible = {
+            ansible    = { path = "ansible" },
+            validation = { enabled = true, lint = { enabled = true } },
+            completion = { provideRedirectModules = true, provideModuleOptionAliases = true },
+            python     = { interpreterPath = "python3" },
+          },
+        },
+      })
+
+      -- Helm
+      vim.lsp.config("helm_ls", {
+        settings = {
+          ["helm-ls"] = {
+            yamlls = {
+              path   = "yaml-language-server",
+              config = { schemas = { kubernetes = "**" } },
             },
           },
         },
+      })
 
-        -- Python
-        pyright = {
-          settings = {
-            python = {
-              analysis = {
-                autoSearchPaths     = true,
-                useLibraryCodeForTypes = true,
-                diagnosticMode      = "workspace",
-                typeCheckingMode    = "basic",
-              },
-            },
-          },
-        },
-
-        -- Go
-        gopls = {
-          settings = {
-            gopls = {
-              gofumpt     = true,
-              codelenses  = {
-                gc_details          = false,
-                generate            = true,
-                regenerate_cgo      = true,
-                run_govulncheck     = true,
-                test                = true,
-                tidy                = true,
-                upgrade_dependency  = true,
-                vendor              = true,
-              },
-              hints = {
-                assignVariableTypes    = true,
-                compositeLiteralFields = true,
-                compositeLiteralTypes  = true,
-                constantValues         = true,
-                functionTypeParameters = true,
-                parameterNames         = true,
-                rangeVariableTypes     = true,
-              },
-              analyses = {
-                fieldalignment = true,
-                nilness        = true,
-                unusedparams   = true,
-                unusedwrite    = true,
-                useany         = true,
-              },
-              usePlaceholders        = true,
-              completeUnimported     = true,
-              staticcheck            = true,
-              directoryFilters       = { "-.git", "-.vscode", "-.idea", "-node_modules" },
-              semanticTokens         = true,
-            },
-          },
-        },
-
-        -- YAML (Kubernetes, Ansible, GitHub Actions, Docker Compose, etc.)
-        yamlls = {
-          -- SchemaStore provides 500+ schemas; injected via on_new_config so the
-          -- plugin is guaranteed to be loaded before the server starts.
-          on_new_config = function(new_config)
-            local ok, ss = pcall(require, "schemastore")
-            if ok then
-              new_config.settings.yaml.schemas = ss.yaml.schemas()
-            end
-          end,
-          settings = {
-            yaml = {
-              keyOrdering = false,
-              format      = { enable = true },
-              validate    = true,
-              -- Disable built-in schemaStore; SchemaStore.nvim replaces it
-              schemaStore = { enable = false, url = "" },
-            },
-          },
-        },
-
-        -- JSON
-        jsonls = {
-          -- SchemaStore provides 500+ JSON schemas (package.json, tsconfig, etc.)
-          on_new_config = function(new_config)
-            local ok, ss = pcall(require, "schemastore")
-            if ok then
-              new_config.settings.json.schemas = ss.json.schemas()
-            else
-              new_config.settings.json.schemas = new_config.settings.json.schemas or {}
-            end
-          end,
-          settings = {
-            json = {
-              format   = { enable = true },
-              validate = { enable = true },
-            },
-          },
-        },
-
-        -- Terraform / HCL
-        terraformls = {},
-
-        -- Dockerfile
-        dockerls = {},
-
-        -- Docker Compose
-        docker_compose_language_service = {},
-
-        -- Ansible
-        ansiblels = {
-          settings = {
-            ansible = {
-              ansible     = { path = "ansible" },
-              validation  = { enabled = true, lint = { enabled = true } },
-              completion  = { provideRedirectModules = true, provideModuleOptionAliases = true },
-              python      = { interpreterPath = "python3" },
-            },
-          },
-          filetypes = { "yaml.ansible" },
-        },
-
-        -- Helm
-        helm_ls = {
-          settings = {
-            ["helm-ls"] = {
-              yamlls = {
-                path    = "yaml-language-server",
-                config  = {
-                  schemas = {
-                    kubernetes = "**",
-                  },
-                },
-              },
-            },
-          },
-        },
-      }
-
-      -- Setup each server
-      local lspconfig = require("lspconfig")
-      for server, config in pairs(servers) do
-        config.capabilities = capabilities
-        config.on_attach    = on_attach
-        lspconfig[server].setup(config)
-      end
+      -- terraformls, dockerls, docker_compose_language_service use lspconfig
+      -- defaults with no extra settings; mason-lspconfig auto-enables them.
     end,
   },
 
