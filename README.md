@@ -2,6 +2,8 @@
 
 A full-featured Neovim configuration designed as a modern IDE — with a focus on **DevOps workflows**: Terraform, Kubernetes, Ansible, Docker, Helm, Go, Python, Bash, and more.
 
+> **Requires Neovim ≥ 0.11** — the LSP configuration uses the native `vim.lsp.config` / `vim.lsp.enable` API introduced in 0.11.
+
 ---
 
 ## Table of Contents
@@ -23,8 +25,8 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 | Category | Details |
 |---|---|
 | **Plugin Manager** | [lazy.nvim](https://github.com/folke/lazy.nvim) — fast, lazy-loaded |
-| **Colorscheme** | [Catppuccin Mocha](https://github.com/catppuccin/nvim) — easy on the eyes |
-| **LSP** | Mason auto-installer + 10 pre-configured language servers |
+| **Colorscheme** | [Tokyo Night](https://github.com/folke/tokyonight.nvim) (night style) — easy on the eyes |
+| **LSP** | Mason auto-installer + 11 pre-configured language servers (Neovim 0.11 native API) |
 | **Completion** | nvim-cmp with LSP, snippets, paths, buffer words |
 | **Snippets** | LuaSnip + friendly-snippets (VS Code compatible) |
 | **Syntax** | Treesitter with 30+ parsers including Terraform, Dockerfile, YAML |
@@ -33,10 +35,11 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 | **Git** | Gitsigns (gutter) + Neogit (TUI) + Diffview (diffs/history) |
 | **Terminal** | ToggleTerm with named terminals: LazyGit, K9s, Python REPL, Htop |
 | **Formatting** | conform.nvim auto-format on save |
-| **Linting** | nvim-lint (shellcheck, hadolint, tflint, yamllint, flake8) |
+| **Linting** | nvim-lint (shellcheck, hadolint, tflint, yamllint, flake8, ansiblelint) |
 | **Folding** | nvim-ufo with LSP/Treesitter providers |
-| **Navigation** | Flash.nvim (s/S leap), vim-illuminate (word highlights) |
+| **Navigation** | Flash.nvim (`s` = jump anywhere, `S` = treesitter select), vim-illuminate (word highlights) |
 | **UI** | Noice (cmdline/messages), lualine, bufferline, which-key, alpha dashboard |
+| **DevOps extras** | Ansible filetype detection + Jinja2 syntax, Python venv picker, DAP debugger (Python) |
 
 ---
 
@@ -46,11 +49,11 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 
 | Tool | How to Install |
 |---|---|
-| **Neovim ≥ 0.10** | `brew install neovim` (macOS) or see [neovim.io](https://neovim.io) |
+| **Neovim ≥ 0.11** | `brew install neovim` (macOS) or see [neovim.io](https://neovim.io) |
 | **git** | pre-installed on most systems |
 | **make** | `xcode-select --install` (macOS) or `apt install build-essential` |
-| **ripgrep** | `brew install ripgrep` — powering live grep in Telescope |
-| **fd** | `brew install fd` — faster `find` for Telescope file search |
+| **ripgrep** | `brew install ripgrep` — powers live grep in Telescope (optional; telescope degrades gracefully without it) |
+| **fd** | `brew install fd` — faster `find` for Telescope file search (optional; falls back to `rg` or system `find`) |
 | **A Nerd Font** | Install any [Nerd Font](https://www.nerdfonts.com) and set it in your terminal |
 | **Node.js ≥ 18** | `brew install node` — required by several LSP servers |
 | **Python 3** | `brew install python` — for pyright, black, flake8, ansible |
@@ -161,7 +164,7 @@ nvim/
     │   ├── keymaps.lua         ← Global keymaps (non-plugin)
     │   └── autocmds.lua        ← Autocommands (yank highlight, filetypes…)
     └── plugins/
-        ├── colorscheme.lua     ← Catppuccin theme
+        ├── colorscheme.lua     ← Tokyo Night theme
         ├── ui.lua              ← Noice, notify, dashboard, indent guides, which-key
         ├── statusline.lua      ← Lualine + Bufferline + buffer management
         ├── explorer.lua        ← Neo-tree file explorer
@@ -171,7 +174,8 @@ nvim/
         ├── completion.lua      ← nvim-cmp + LuaSnip
         ├── git.lua             ← Gitsigns + Neogit + Diffview
         ├── terminal.lua        ← ToggleTerm + named terminals
-        └── editor.lua          ← Autopairs, comments, surround, formatting, linting…
+        ├── editor.lua          ← Autopairs, comments, surround, formatting, linting…
+        └── devops.lua          ← Ansible syntax, Jinja2, Python venv selector, DAP debugger
 ```
 
 ---
@@ -181,7 +185,7 @@ nvim/
 | Plugin | Purpose |
 |---|---|
 | `lazy.nvim` | Plugin manager with lazy-loading |
-| `catppuccin` | Colorscheme (Mocha dark) |
+| `tokyonight.nvim` | Colorscheme (Tokyo Night — night style) |
 | `noice.nvim` | Better cmdline, messages, popupmenu |
 | `nvim-notify` | Notification system |
 | `alpha-nvim` | Start screen / dashboard |
@@ -216,6 +220,13 @@ nvim/
 | `trouble.nvim` | Diagnostics list panel |
 | `fidget.nvim` | LSP progress spinner |
 | `nvim-bqf` | Better quickfix list |
+| `ansible-vim` | Ansible filetype detection (`yaml.ansible`) + improved syntax |
+| `Vim-Jinja2-Syntax` | Jinja2 / J2 template syntax highlighting |
+| `venv-selector.nvim` | Python virtual environment picker (Telescope) |
+| `nvim-dap` | Debug Adapter Protocol core |
+| `nvim-dap-ui` | Debug UI (variables, call stack, breakpoints, REPL) |
+| `nvim-dap-python` | Python debug adapter (uses Mason-installed debugpy) |
+| `nvim-dap-virtual-text` | Inline variable values during debug sessions |
 
 ---
 
@@ -335,12 +346,24 @@ nvim/
 | `<leader>tT` | Terraform console |
 | `<Esc><Esc>` | Exit terminal mode |
 
+### Flash Navigation
+
+> **Note:** `s` and `S` are remapped from their Vim defaults (`s` = substitute char, `S` = substitute line) to flash.nvim. Use `cl` (change letter) and `cc` (change line) as direct replacements.
+
+| Key | Mode | Action |
+|---|---|---|
+| `s` | n/x/o | Type 2 chars → jump to any match on screen |
+| `S` | n/x/o | Jump to a treesitter syntax node |
+| `r` | o | Remote flash — apply operator at a distant location without moving cursor |
+| `R` | o/x | Treesitter-aware remote search |
+| `<C-s>` | c | Toggle flash inside `/` search |
+
+**Example:** `d s fu <label>` deletes from cursor to any visible `fu…` match in one motion.
+
 ### Editing
 
 | Key | Action |
 |---|---|
-| `s` | Flash jump (type 2 chars to jump anywhere) |
-| `S` | Flash treesitter select |
 | `gcc` | Toggle comment (line) |
 | `gc` (visual) | Toggle comment (selection) |
 | `<A-j/k>` | Move line / selection up or down |
@@ -352,6 +375,33 @@ nvim/
 | `]]` / `[[` | Next / prev reference (vim-illuminate) |
 | `<C-space>` | Expand treesitter selection |
 | `<BS>` | Shrink treesitter selection |
+
+### Debugging (DAP)
+
+| Key | Action |
+|---|---|
+| `<leader>db` | Toggle breakpoint |
+| `<leader>dB` | Conditional breakpoint |
+| `<leader>dc` | Continue / start debug session |
+| `<leader>di` | Step into |
+| `<leader>dn` | Step over |
+| `<leader>do` | Step out |
+| `<leader>dx` | Terminate session |
+| `<leader>dr` | Toggle REPL |
+| `<leader>dl` | Run last debug config |
+| `<leader>dL` | Set log point |
+| `<leader>du` | Toggle DAP UI panels |
+| `<leader>de` | Evaluate expression (n/v) |
+| `<leader>dpm` | Python: run test method under cursor |
+| `<leader>dpc` | Python: run test class under cursor |
+| `<leader>dps` | Python: debug visual selection |
+
+### Python
+
+| Key | Action |
+|---|---|
+| `<leader>pv` | Open venv selector (Telescope) |
+| `<leader>pV` | Re-use last selected venv |
 
 ### Code Folding
 
@@ -419,7 +469,7 @@ nvim/
 | **JSON** | `jsonls` | Schema validation for common files |
 | **Dockerfile** | `dockerls` | Instruction completion + linting |
 | **Docker Compose** | `docker_compose_language_service` | Service/volume/network completion |
-| **Ansible** | `ansiblels` | Playbook/role/task completion |
+| **Ansible** | `ansiblels` | Playbook/role/task completion; activates on `yaml.ansible` filetype |
 | **Helm** | `helm_ls` | Template completion with K8s schemas |
 | **Lua** | `lua_ls` | Full Neovim API completion |
 
@@ -444,7 +494,13 @@ nvim/
 | Terraform | `tflint` |
 | YAML | `yamllint` |
 | Python | `flake8` |
-| Ansible | `ansiblelint` |
+| Ansible playbooks | `ansiblelint` |
+
+### Debug Adapters (auto-installed by Mason)
+
+| Language | Adapter | Notes |
+|---|---|---|
+| **Python** | `debugpy` | Used by `nvim-dap-python`; set breakpoints with `<leader>db` |
 
 ### YAML Schema Auto-detection
 
@@ -505,9 +561,25 @@ Use `cgn` (change next occurrence) to rename a word across a file:
 - Use `<leader>fg` to grep across your entire chart directory
 
 ### Ansible Tips
-- Playbook YAML files get `ansiblels` completion for modules
+- Playbook YAML files are auto-detected as `yaml.ansible` filetype (via `ansible-vim`)
+- `ansiblels` activates automatically — get module name completion and validation
+- Jinja2 template files (`.j2`, `.jinja2`) get syntax highlighting via `Vim-Jinja2-Syntax`
 - `<leader>cf` formats the YAML on save
 - `<leader>gG` (LazyGit) for managing playbook repositories
+
+### Python Virtual Environments
+- Open any Python file and press `<leader>pv` to pick a venv from Telescope
+- Detects `.venv/`, `venv/`, `~/.virtualenvs/`, pyenv, Conda, Poetry, Pipenv automatically
+- Switching venvs automatically updates `pyright` and `ruff` to use the chosen interpreter
+- `<leader>pV` re-uses the last selected venv without showing the picker
+
+### Python Debugging (DAP)
+- `<leader>db` — toggle a breakpoint on the current line
+- `<leader>dc` — start / continue the debug session (DAP UI opens automatically)
+- `<leader>di` / `<leader>dn` / `<leader>do` — step into / over / out
+- `<leader>dpm` — run the test method under cursor; `<leader>dpc` — run test class
+- `<leader>du` — toggle the debug side panels (variables, call stack, watches)
+- `<leader>de` — evaluate any expression or visual selection inline
 
 ### Go Tips
 - Codelens shows test/run/tidy links in source files
@@ -532,17 +604,18 @@ Use `cgn` (change next occurrence) to rename a word across a file:
 
 ### Add a new LSP server
 1. Open `lua/plugins/lsp.lua`
-2. Add the Mason name to `ensure_installed` in the Mason section
-3. Add a config entry to the `servers` table — e.g.:
+2. Add the Mason package name to `ensure_installed` in the Mason section (e.g. `"rust-analyzer"`)
+3. Add settings using the Neovim 0.11 `vim.lsp.config` API inside the `nvim-lspconfig` config block:
 ```lua
-rust_analyzer = {
+vim.lsp.config("rust_analyzer", {
   settings = {
     ["rust-analyzer"] = {
       checkOnSave = { command = "clippy" },
     },
   },
-},
+})
 ```
+Mason + mason-lspconfig will auto-enable it via `vim.lsp.enable()` once installed.
 
 ### Add a new filetype formatter
 Open `lua/plugins/editor.lua` and add to `formatters_by_ft`:
@@ -551,10 +624,16 @@ rust = { "rustfmt" },
 ```
 
 ### Change the colorscheme
-Edit `lua/plugins/colorscheme.lua` and swap `catppuccin` for another scheme.
-Popular alternatives:
-- `folke/tokyonight.nvim` → `vim.cmd.colorscheme("tokyonight")`
-- `EdenEast/nightfox.nvim` → `vim.cmd.colorscheme("nightfox")`
+Edit `lua/plugins/colorscheme.lua`. The current scheme is Tokyo Night. To switch:
+```lua
+-- Example: swap to nightfox
+"EdenEast/nightfox.nvim",
+config = function(_, opts)
+  require("nightfox").setup(opts)
+  vim.cmd.colorscheme("nightfox")
+end
+```
+Also update `lua/plugins/statusline.lua` — lualine theme is set to `"tokyonight"` by name.
 
 ### Add personal keymaps
 Add to `lua/core/keymaps.lua` or create a new file `lua/plugins/personal.lua`
@@ -581,4 +660,6 @@ Create `~/.config/nvim/snippets/<filetype>.json` in VS Code format — LuaSnip w
 | Treesitter errors | `:TSUpdate` to rebuild parsers |
 | Missing formatter | `:Mason` → search for the formatter → install it |
 | Keybinding conflict | `:Telescope keymaps` to inspect all active keymaps |
-| Cannot find files | Ensure `fd` and `ripgrep` are installed: `brew install fd ripgrep` |
+| Cannot find files | `fd` and `ripgrep` are optional — telescope falls back to system `find`. Install them for better performance: `brew install fd ripgrep` |
+| `s` doesn't substitute | `s` is remapped to flash.nvim jump. Use `cl` (change letter) or `cc` (change line) instead |
+| LSP deprecation warnings | Ensure you are on Neovim ≥ 0.11; the config uses native `vim.lsp.config` and does not call `require('lspconfig')[server].setup()` |
