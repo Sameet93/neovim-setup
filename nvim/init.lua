@@ -52,7 +52,10 @@ require("lazy").setup({
     version = false, -- use latest git commits
   },
   install = {
-    colorscheme = { "catppuccin", "habamax" },
+    colorscheme = { "tokyonight", "habamax" },
+  },
+  rocks = {
+    enabled = false, -- no plugins use luarocks; avoids hererocks bootstrap error
   },
   checker = {
     enabled = true,
