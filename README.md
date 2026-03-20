@@ -15,8 +15,9 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 5. [Plugin Overview](#plugin-overview)
 6. [Keybinding Reference](#keybinding-reference)
 7. [DevOps Language Support](#devops-language-support)
-8. [Tips & Tricks](#tips--tricks)
-9. [Customisation](#customisation)
+8. [AI Assistant (Ollama)](#ai-assistant-ollama)
+9. [Tips & Tricks](#tips--tricks)
+10. [Customisation](#customisation)
 
 ---
 
@@ -40,6 +41,7 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 | **Navigation** | Flash.nvim (`s` = jump anywhere, `S` = treesitter select), vim-illuminate (word highlights) |
 | **UI** | Noice (cmdline/messages), lualine, bufferline, which-key, alpha dashboard |
 | **DevOps extras** | Ansible filetype detection + Jinja2 syntax, Python venv picker, DAP debugger (Python) |
+| **AI assistant** | [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) + [Ollama](https://ollama.com) — fully local, no data leaves your machine |
 
 ---
 
@@ -93,6 +95,7 @@ The script will:
 - **Back up** any existing `~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim`, and `~/.cache/nvim` with a timestamp suffix (e.g. `.bak.20260317_142500`)
 - Copy the config to `~/.config/nvim`
 - Offer to install optional DevOps CLI tools (Terraform, Ansible, Helm, kubectl, k9s, lazygit, etc.)
+- Offer to install **Ollama** and pull the `codestral` model for local AI assistance
 
 **Symlink mode** — keep the config living inside the cloned repo so any edits are version-controlled:
 
@@ -175,8 +178,7 @@ nvim/
         ├── git.lua             ← Gitsigns + Neogit + Diffview
         ├── terminal.lua        ← ToggleTerm + named terminals
         ├── editor.lua          ← Autopairs, comments, surround, formatting, linting…
-        └── devops.lua          ← Ansible syntax, Jinja2, Python venv selector, DAP debugger
-```
+        └── devops.lua          ← Ansible syntax, Jinja2, Python venv selector, DAP debugger        └── ai.lua              ← CodeCompanion + Ollama (local AI assistant)```
 
 ---
 
@@ -227,6 +229,8 @@ nvim/
 | `nvim-dap-ui` | Debug UI (variables, call stack, breakpoints, REPL) |
 | `nvim-dap-python` | Python debug adapter (uses Mason-installed debugpy) |
 | `nvim-dap-virtual-text` | Inline variable values during debug sessions |
+| `codecompanion.nvim` | AI chat + inline actions powered by Ollama |
+| `render-markdown.nvim` | Renders markdown + code blocks in the AI chat buffer |
 
 ---
 
@@ -402,6 +406,22 @@ nvim/
 |---|---|
 | `<leader>pv` | Open venv selector (Telescope) |
 | `<leader>pV` | Re-use last selected venv |
+
+### AI Assistant
+
+| Key | Mode | Action |
+|---|---|---|
+| `<leader>ac` | n/v | Toggle AI chat panel |
+| `<leader>an` | n/v | New AI chat |
+| `<leader>ai` | n/v | Inline prompt (edit/generate at cursor) |
+| `<leader>aa` | n/v | Action picker (all available AI actions) |
+| `<leader>ae` | v | Explain selected code |
+| `<leader>af` | v | Fix selected code |
+| `<leader>at` | v | Generate tests for selection |
+| `<leader>ar` | v | Code review for selection |
+| `<leader>am` | n | Generate a git commit message |
+
+*Inside the chat buffer: `<CR>` send, `<C-c>` stop, `q` close, `]c`/`[c` next/prev chat.*
 
 ### Code Folding
 
@@ -600,6 +620,86 @@ Use `cgn` (change next occurrence) to rename a word across a file:
 
 ---
 
+## AI Assistant (Ollama)
+
+This config includes **CodeCompanion** wired to a local **Ollama** instance. Your code never leaves your machine.
+
+### Setup
+
+```bash
+# Install Ollama
+brew install ollama        # macOS
+# Linux: curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull the recommended model (Mistral AI, France — ~14 GB)
+ollama pull codestral
+
+# Start the daemon (once)
+ollama serve
+# Or auto-start at login:
+brew services start ollama
+```
+
+> **Low RAM?** Use `llama3.1:8b` instead (~5 GB, still good for most tasks):
+> ```bash
+> ollama pull llama3.1:8b
+> ```
+> Then change `default = "codestral"` to `default = "llama3.1:8b"` in `lua/plugins/ai.lua`.
+
+### Usage
+
+**Chat mode** — open a persistent side panel:
+```
+<leader>ac    open/toggle chat
+<leader>an    new chat session
+```
+
+In the chat buffer you can use slash commands to attach context:
+```
+/file        attach any file from the project
+/buffer      attach an open buffer
+/symbols     attach LSP symbols from the current file
+```
+
+**Inline mode** — generate or edit code at the cursor:
+```
+<leader>ai    open an inline prompt
+```
+Type your instruction (e.g. `add input validation`) and the AI edits the buffer directly. Accept/reject the diff.
+
+**Visual selection actions** — select code, then:
+```
+<leader>ae    explain this code
+<leader>af    fix this code
+<leader>at    write tests for this
+<leader>ar    review this code
+```
+
+**Commit messages:**
+```
+<leader>am    generate a commit message from staged diff
+```
+
+### Terraform / DevOps workflow
+
+```
+1. Open a .tf file
+2. <leader>ac   — open AI chat
+3. Ask: "add a security group rule for HTTPS ingress from 0.0.0.0/0"
+   or:   "review this module for security issues"
+   or:   "explain what this Ansible role does"
+4. /file then select another .tf file to include as context
+5. <leader>ai   — inline: select a resource block → <leader>af to fix it
+```
+
+### Switch models at any time
+```vim
+:CodeCompanionModels    " pick from all locally installed Ollama models
+```
+Or pull a new model from the terminal: `ollama pull <name>`
+
+---
+
 ## Customisation
 
 ### Add a new LSP server
@@ -648,6 +748,16 @@ In any plugin file, add `enabled = false` to the plugin spec:
 ### Add custom snippets
 Create `~/.config/nvim/snippets/<filetype>.json` in VS Code format — LuaSnip will pick them up automatically.
 
+### Change AI model
+Edit `lua/plugins/ai.lua` and update the `model.default` field:
+```lua
+schema = {
+  model = {
+    default = "llama3.1:8b",  -- or any model from: ollama list
+  },
+```
+Then pull it: `ollama pull llama3.1:8b`
+
 ---
 
 ## Troubleshooting
@@ -663,3 +773,5 @@ Create `~/.config/nvim/snippets/<filetype>.json` in VS Code format — LuaSnip w
 | Cannot find files | `fd` and `ripgrep` are optional — telescope falls back to system `find`. Install them for better performance: `brew install fd ripgrep` |
 | `s` doesn't substitute | `s` is remapped to flash.nvim jump. Use `cl` (change letter) or `cc` (change line) instead |
 | LSP deprecation warnings | Ensure you are on Neovim ≥ 0.11; the config uses native `vim.lsp.config` and does not call `require('lspconfig')[server].setup()` |
+| AI chat not responding | Ollama must be running: `ollama serve` (or `brew services start ollama`). Check with: `curl http://localhost:11434/api/tags` |
+| AI model not found | Run `ollama pull codestral` (or `ollama list` to see what's installed) |

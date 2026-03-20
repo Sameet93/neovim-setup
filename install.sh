@@ -7,6 +7,7 @@
 #   2. Backs up any existing Neovim config/data/state/cache with a timestamp
 #   3. Copies (or symlinks) this repo's nvim/ directory to ~/.config/nvim
 #   4. Offers to install optional DevOps CLI tools (terraform, ansible, etc.)
+#   5. Offers to install Ollama + pull the codestral model for AI assistance
 #
 # Usage:
 #   ./install.sh               # copy mode  (safe default)
@@ -126,8 +127,8 @@ if cmd_exists nvim; then
   # Warn if version is below 0.10
   NVIM_MAJOR=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f1)
   NVIM_MINOR=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)
-  if [[ "$NVIM_MAJOR" -lt 1 ]] && [[ "$NVIM_MINOR" -lt 10 ]]; then
-    warn "This config requires Neovim ≥ 0.10. Your version may be too old."
+  if [[ "$NVIM_MAJOR" -lt 1 ]] && [[ "$NVIM_MINOR" -lt 11 ]]; then
+    warn "This config requires Neovim ≥ 0.11. Your version may be too old."
     if ask "Attempt to upgrade Neovim now?"; then
       if [[ "$OS" == "macos" ]]; then install_neovim_macos; else install_neovim_linux; fi
     fi
@@ -331,7 +332,96 @@ else
 fi
 
 # =============================================================================
-# 6. First launch
+# 6. Optional: Ollama (local AI — fully private, no data leaves your machine)
+# =============================================================================
+header "AI assistant (Ollama + codestral)"
+echo ""
+echo "  CodeCompanion is included in this config and uses Ollama for a fully"
+echo "  local AI assistant. Your code never leaves your machine."
+echo ""
+echo "  Recommended model: codestral (Mistral AI, 22B)"
+echo "    - Best for Terraform / HCL, Ansible, Bash, Go, Python"
+echo "    - Requires ~14 GB RAM during inference"
+echo "    - If you have ≤ 16 GB RAM consider: llama3.1:8b (~5 GB)"
+echo ""
+
+install_ollama_macos() {
+  if cmd_exists brew; then
+    info "Installing Ollama via Homebrew..."
+    brew install ollama
+  else
+    info "Installing Ollama via official installer..."
+    curl -fsSL https://ollama.com/install.sh | sh
+  fi
+}
+
+install_ollama_linux() {
+  info "Installing Ollama via official installer..."
+  curl -fsSL https://ollama.com/install.sh | sh
+}
+
+if cmd_exists ollama; then
+  success "Ollama already installed: $(ollama --version 2>/dev/null || echo 'version unknown')"
+else
+  if ask "  Install Ollama?"; then
+    if [[ "$OS" == "macos" ]]; then install_ollama_macos; else install_ollama_linux; fi
+    cmd_exists ollama && success "Ollama installed" || warn "Ollama installation may have failed — install manually from https://ollama.com"
+  fi
+fi
+
+if cmd_exists ollama; then
+  echo ""
+  # Offer model selection if no code models are already pulled
+  HAVE_CODESTRAL=false
+  HAVE_LLAMA=false
+  if ollama list 2>/dev/null | grep -q "codestral"; then HAVE_CODESTRAL=true; fi
+  if ollama list 2>/dev/null | grep -qE "llama3"; then HAVE_LLAMA=true; fi
+
+  if [[ "$HAVE_CODESTRAL" == true ]]; then
+    success "codestral model already present — no download needed"
+  else
+    echo "  Choose a model to pull (you can change this later with: ollama pull <model>):"
+    echo "    1) codestral     — best quality, ~14 GB download (recommended for ≥ 32 GB RAM)"
+    echo "    2) llama3.1:8b   — good quality, ~5 GB download  (recommended for ≤ 16 GB RAM)"
+    echo "    3) Skip          — I'll pull a model manually later"
+    echo ""
+    MODEL_CHOICE=""
+    while true; do
+      read -r -p "  Your choice [1/2/3]: " MODEL_CHOICE
+      case "$MODEL_CHOICE" in
+        1) MODEL_TO_PULL="codestral";  break ;;
+        2) MODEL_TO_PULL="llama3.1:8b"; break ;;
+        3) MODEL_TO_PULL="";           break ;;
+        *) echo "  Please enter 1, 2, or 3." ;;
+      esac
+    done
+
+    if [[ -n "$MODEL_TO_PULL" ]]; then
+      info "Starting Ollama daemon for model pull..."
+      # Start ollama serve in background if not already running
+      if ! curl -s --max-time 2 http://localhost:11434/api/tags &>/dev/null; then
+        ollama serve &>/tmp/ollama-serve.log &
+        OLLAMA_PID=$!
+        sleep 3
+      fi
+      info "Pulling ${MODEL_TO_PULL} (this may take a while)..."
+      ollama pull "$MODEL_TO_PULL" && success "${MODEL_TO_PULL} model ready" || warn "Pull failed — run manually: ollama pull ${MODEL_TO_PULL}"
+    else
+      info "Skipped. Pull a model later with: ollama pull codestral"
+    fi
+  fi
+
+  echo ""
+  info "To start Ollama automatically at login:"
+  if [[ "$OS" == "macos" ]]; then
+    echo "    brew services start ollama"
+  else
+    echo "    sudo systemctl enable --now ollama"
+  fi
+fi
+
+# =============================================================================
+# 7. First launch
 # =============================================================================
 header "Ready!"
 echo ""
@@ -346,6 +436,10 @@ echo "       lazy.nvim will self-bootstrap and install all plugins (~1-2 min)."
 echo "    2. Mason auto-installs LSP servers, linters, and formatters."
 echo "       Watch progress with :Mason or :Lazy"
 echo "    3. Run :checkhealth to confirm everything is working."
+if cmd_exists ollama; then
+  echo "    4. Start Ollama:   ollama serve  (or brew services start ollama)"
+  echo "       Then in Neovim: <leader>ac to open the AI chat."
+fi
 echo ""
 
 if ask "Open Neovim now?"; then
