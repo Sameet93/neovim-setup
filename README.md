@@ -182,6 +182,8 @@ nvim/
 
 ---
 
+```
+
 ## Plugin Overview
 
 | Plugin | Purpose |
