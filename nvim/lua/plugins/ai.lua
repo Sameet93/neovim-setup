@@ -172,7 +172,10 @@ You have access to the user's current file and any context they share.]]
   {
     "milanglacier/minuet-ai.nvim",
     event        = "InsertEnter",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "hrsh7th/nvim-cmp",  -- must load before minuet so cmp source registers correctly
+    },
     config = function()
       require("minuet").setup({
         -- Use Ollama via its OpenAI-compatible endpoint
@@ -192,7 +195,8 @@ You have access to the user's current file and any context they share.]]
         },
         n_completions  = 1,       -- one suggestion at a time keeps it snappy
         context_window = 6144,    -- tokens of surrounding code to send
-        delay_ms       = 1000,    -- wait 1 s idle before requesting (avoids spam)
+        throttle       = 1000,    -- ms between requests (was incorrectly "delay_ms")
+        debounce       = 400,     -- ms idle before triggering after throttle
         -- Virtual (ghost) text — appears inline, like Copilot
         virtualtext = {
           auto_trigger_ft = { "*" },   -- trigger on all filetypes

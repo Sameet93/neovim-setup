@@ -114,15 +114,32 @@ autocmd("FileType", {
 })
 
 -- ─── Telescope: disable horizontal scroll shifting ─────────────────────────
--- sidescrolloff=8 causes items in Telescope pickers to drift right on every
--- keypress because the cursor movement triggers the scroll guard. Zero it out
--- for all Telescope buffertypes so the view stays locked.
+-- scrolloff/sidescrolloff are window-local. The FileType event fires while
+-- focus is still in the prompt window, so vim.opt_local targets the wrong
+-- window. Instead: find every window that holds this buffer and set the
+-- options directly via nvim_set_option_value with { win = win_id }.
 autocmd("FileType", {
   group   = augroup("telescope_scroll"),
   pattern = { "TelescopePrompt", "TelescopeResults", "TelescopePreview" },
-  callback = function()
-    vim.opt_local.sidescrolloff = 0
-    vim.opt_local.scrolloff     = 0
+  callback = function(ev)
+    -- Set on every window displaying this buffer (usually just one)
+    for _, win in ipairs(vim.fn.win_findbuf(ev.buf)) do
+      vim.api.nvim_set_option_value("sidescrolloff", 0, { win = win })
+      vim.api.nvim_set_option_value("scrolloff",     0, { win = win })
+    end
+    -- Also fire on WinEnter in case the window wasn't open yet when FileType fired
+    local buf = ev.buf
+    vim.api.nvim_create_autocmd("WinEnter", {
+      once    = true,
+      buffer  = buf,
+      callback = function()
+        local w = vim.api.nvim_get_current_win()
+        if vim.api.nvim_win_get_buf(w) == buf then
+          vim.api.nvim_set_option_value("sidescrolloff", 0, { win = w })
+          vim.api.nvim_set_option_value("scrolloff",     0, { win = w })
+        end
+      end,
+    })
   end,
 })
 
