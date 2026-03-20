@@ -346,7 +346,7 @@ nvim/
 | `<leader>tv` | Vertical terminal |
 | `<leader>tt` | Tab terminal |
 | `<leader>gG` | LazyGit |
-| `<leader>tk` | K9s (Kubernetes) |
+| `<leader>K` | K9s (Kubernetes) |
 | `<leader>tp` | Python REPL |
 | `<leader>tm` | Htop |
 | `<leader>tT` | Terraform console |

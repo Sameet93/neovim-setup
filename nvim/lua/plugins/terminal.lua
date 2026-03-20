@@ -82,7 +82,7 @@ return {
         name      = "k9s",
         float_opts = { border = "curved" },
       })
-      vim.keymap.set("n", "<leader>tk", function() k9s:toggle() end,
+      vim.keymap.set("n", "<leader>K", function() k9s:toggle() end,
         { desc = "K9s (Kubernetes)" })
 
       -- ── LazyDocker ────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ return {
             { noremap = true, silent = true })
         end,
       })
-      vim.keymap.set("n", "<leader>td", function() lazydocker:toggle() end,
+      vim.keymap.set("n", "<leader>D", function() lazydocker:toggle() end,
         { desc = "LazyDocker" })
 
       -- ── Python REPL ──────────────────────────────────────────────────────
