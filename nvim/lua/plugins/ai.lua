@@ -179,13 +179,12 @@ You have access to the user's current file and any context they share.]]
         provider = "openai_compatible",
         provider_options = {
           openai_compatible = {
-            model    = "codestral",
-            api_key  = "TERM",   -- Ollama needs no key; "TERM" reads $TERM (always set)
-            base_url = "http://localhost:11434/v1/",
-            end_point = "chat/completions",
-            name     = "Ollama",
-            stream   = true,
-            optional = {
+            model     = "codestral",
+            api_key   = "TERM",  -- Ollama needs no key; "TERM" env var is always set
+            end_point = "http://localhost:11434/v1/chat/completions",  -- full URL
+            name      = "Ollama",
+            stream    = true,
+            optional  = {
               max_tokens = 256,
               top_p      = 0.9,
             },
