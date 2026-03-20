@@ -85,6 +85,21 @@ return {
       vim.keymap.set("n", "<leader>tk", function() k9s:toggle() end,
         { desc = "K9s (Kubernetes)" })
 
+      -- ── LazyDocker ────────────────────────────────────────────────────────
+      local lazydocker = Terminal:new({
+        cmd       = "lazydocker",
+        direction = "float",
+        name      = "lazydocker",
+        float_opts = { border = "double" },
+        on_open = function(term)
+          vim.cmd("startinsert!")
+          vim.api.nvim_buf_set_keymap(term.bufnr, "n", "q", "<cmd>close<CR>",
+            { noremap = true, silent = true })
+        end,
+      })
+      vim.keymap.set("n", "<leader>td", function() lazydocker:toggle() end,
+        { desc = "LazyDocker" })
+
       -- ── Python REPL ──────────────────────────────────────────────────────
       local python = Terminal:new({
         cmd       = "python3",
