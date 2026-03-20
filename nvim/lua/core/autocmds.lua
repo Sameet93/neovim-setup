@@ -113,6 +113,19 @@ autocmd("FileType", {
   end,
 })
 
+-- ─── Telescope: disable horizontal scroll shifting ─────────────────────────
+-- sidescrolloff=8 causes items in Telescope pickers to drift right on every
+-- keypress because the cursor movement triggers the scroll guard. Zero it out
+-- for all Telescope buffertypes so the view stays locked.
+autocmd("FileType", {
+  group   = augroup("telescope_scroll"),
+  pattern = { "TelescopePrompt", "TelescopeResults", "TelescopePreview" },
+  callback = function()
+    vim.opt_local.sidescrolloff = 0
+    vim.opt_local.scrolloff     = 0
+  end,
+})
+
 -- ─── CodeCompanion chat buffer settings ────────────────────────────────────
 -- The global wrap=false + sidescrolloff=8 causes long AI responses to scroll
 -- sideways. Force sane reading defaults and disable nvim-cmp so it doesn't
