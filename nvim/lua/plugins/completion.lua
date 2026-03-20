@@ -118,6 +118,7 @@ return {
         sources = cmp.config.sources({
           { name = "nvim_lsp", priority = 1000 },
           { name = "luasnip",  priority = 750 },
+          { name = "minuet",   priority = 900 },  -- AI completions (Ollama/minuet-ai)
           { name = "path",     priority = 500 },
           { name = "buffer",   priority = 250,
             option = {

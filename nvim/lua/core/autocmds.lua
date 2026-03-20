@@ -113,6 +113,25 @@ autocmd("FileType", {
   end,
 })
 
+-- ─── CodeCompanion chat buffer settings ────────────────────────────────────
+-- The global wrap=false + sidescrolloff=8 causes long AI responses to scroll
+-- sideways. Force sane reading defaults and disable nvim-cmp so it doesn't
+-- pop up inside the chat (codecompanion has its own <C-_> completion).
+autocmd("FileType", {
+  group   = augroup("codecompanion_chat"),
+  pattern = "codecompanion",
+  callback = function()
+    vim.opt_local.wrap          = true   -- wrap long AI responses
+    vim.opt_local.sidescrolloff = 0      -- no horizontal scroll chasing cursor
+    vim.opt_local.linebreak     = true   -- break at word boundaries
+    vim.opt_local.spell         = false  -- no red squiggles in AI text
+    -- Disable nvim-cmp in the chat buffer; codecompanion provides its own
+    -- completion (<C-_>) for slash commands and context variables.
+    local ok, cmp = pcall(require, "cmp")
+    if ok then cmp.setup.buffer({ enabled = false }) end
+  end,
+})
+
 -- ─── Auto-create parent directories when saving ────────────────────────────
 autocmd("BufWritePre", {
   group    = augroup("auto_create_dir"),

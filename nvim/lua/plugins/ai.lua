@@ -70,6 +70,16 @@ return {
       interactions = {
         chat = {
           adapter = "ollama",
+          -- <C-CR> in insert mode sends the message (more intuitive than <C-s>).
+          -- Normal-mode <CR> / <C-s> are preserved from the defaults.
+          keymaps = {
+            send = {
+              modes    = { n = { "<CR>", "<C-s>" }, i = { "<C-s>", "<C-CR>" } },
+              index    = 2,
+              callback = "keymaps.send",
+              description = "[Request] Send response",
+            },
+          },
           -- Override slash_commands to prefer telescope as the picker
           slash_commands = {
             ["file"] = {
@@ -146,6 +156,61 @@ You have access to the user's current file and any context they share.]]
           end
         end
       end, 3000)
+    end,
+  },
+
+  -- ─────────────────────────────────────────────────────────────────────────
+  -- Inline AI completion: Copilot-style ghost text via Ollama
+  -- Suggestions appear while you type (after a short idle delay).
+  --
+  -- Accept keymaps:
+  --   <A-a>  — accept the whole suggestion
+  --   <A-l>  — accept one line
+  --   <A-e>  — dismiss
+  --   <A-]>  — cycle to next suggestion   <A-[>  — cycle to prev
+  -- ─────────────────────────────────────────────────────────────────────────
+  {
+    "milanglacier/minuet-ai.nvim",
+    event        = "InsertEnter",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("minuet").setup({
+        -- Use Ollama via its OpenAI-compatible endpoint
+        provider = "openai_compatible",
+        provider_options = {
+          openai_compatible = {
+            model    = "codestral",
+            api_key  = "TERM",   -- Ollama needs no key; "TERM" reads $TERM (always set)
+            base_url = "http://localhost:11434/v1/",
+            end_point = "chat/completions",
+            name     = "Ollama",
+            stream   = true,
+            optional = {
+              max_tokens = 256,
+              top_p      = 0.9,
+            },
+          },
+        },
+        n_completions  = 1,       -- one suggestion at a time keeps it snappy
+        context_window = 6144,    -- tokens of surrounding code to send
+        delay_ms       = 1000,    -- wait 1 s idle before requesting (avoids spam)
+        -- Virtual (ghost) text — appears inline, like Copilot
+        virtualtext = {
+          auto_trigger_ft = { "*" },   -- trigger on all filetypes
+          -- Don't trigger inside special/non-code buffers
+          auto_trigger_ignore_ft = {
+            "codecompanion", "TelescopePrompt", "neo-tree",
+            "NvimTree", "help", "lazy", "mason",
+          },
+          keymap = {
+            accept      = "<A-a>",  -- accept full suggestion
+            accept_line = "<A-l>",  -- accept one line
+            next        = "<A-]>",  -- next suggestion
+            prev        = "<A-[>",  -- prev suggestion
+            dismiss     = "<A-e>",  -- dismiss
+          },
+        },
+      })
     end,
   },
 }
