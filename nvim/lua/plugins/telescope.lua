@@ -65,10 +65,11 @@ return {
 
       telescope.setup({
         defaults = {
-          prompt_prefix   = "   ",
-          selection_caret = " ",
-          entry_prefix    = "   ",
-          path_display    = { "smart" },
+          prompt_prefix    = "  ",
+          selection_caret  = "> ",
+          entry_prefix     = "  ",
+          path_display     = { "smart" },
+          scroll_strategy  = "limit",
           sorting_strategy = "ascending",
           layout_strategy  = "horizontal",
           layout_config   = {

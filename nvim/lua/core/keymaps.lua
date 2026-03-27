@@ -33,7 +33,7 @@ map("n", "<leader>ba", "<cmd>%bdelete<CR>",    { desc = "Close all buffers" })
 map("n", "<leader>to", "<cmd>tabnew<CR>",   { desc = "New tab" })
 map("n", "<leader>tx", "<cmd>tabclose<CR>", { desc = "Close tab" })
 map("n", "<leader>tn", "<cmd>tabn<CR>",     { desc = "Next tab" })
-map("n", "<leader>tp", "<cmd>tabp<CR>",     { desc = "Prev tab" })
+map("n", "<leader>tP", "<cmd>tabp<CR>",     { desc = "Prev tab" })
 
 -- ─── Editing ───────────────────────────────────────────────────────────────
 -- Stay in indent mode after shifting
