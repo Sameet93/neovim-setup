@@ -66,22 +66,29 @@ return {
     },
   },
 
-  -- ─── Database UI: DBee ───────────────────────────────────────────────────
-  -- Open an interactive database browser inside Neovim. The backend binary
-  -- is installed during the plugin build step so :Dbee works out of the box.
+  -- ─── Database UI: vim-dadbod + vim-dadbod-ui ────────────────────────────
+  -- Provides a stable database drawer plus SQL query execution from buffers.
   {
-    "kndndrj/nvim-dbee",
-    cmd = "Dbee",
-    build = function()
-      require("dbee").install("curl")
-    end,
+    "kristijanhusak/vim-dadbod-ui",
+    cmd = {
+      "DBUI",
+      "DBUIToggle",
+      "DBUIAddConnection",
+      "DBUIFindBuffer",
+    },
     dependencies = {
-      "MunifTanjim/nui.nvim",
+      { "tpope/vim-dadbod", lazy = true },
+      { "kristijanhusak/vim-dadbod-completion", ft = { "sql", "mysql", "plsql" }, lazy = true },
     },
     keys = {
-      { "<leader>od", "<cmd>Dbee<CR>", desc = "Open database UI" },
+      { "<leader>od", "<cmd>DBUIToggle<CR>", desc = "Open database UI" },
+      { "<leader>oa", "<cmd>DBUIAddConnection<CR>", desc = "Add database connection" },
+      { "<leader>of", "<cmd>DBUIFindBuffer<CR>", desc = "Find database buffer" },
     },
-    opts = {},
+    init = function()
+      vim.g.db_ui_use_nerd_fonts = 1
+      vim.g.db_ui_save_location = vim.fn.stdpath("data") .. "/db_ui"
+    end,
   },
 
   -- ─── DAP: Debug Adapter Protocol core ────────────────────────────────────

@@ -35,7 +35,7 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 | **File Explorer** | Neo-tree with Git status icons |
 | **Git** | Gitsigns (gutter) + Neogit (TUI) + Diffview (diffs/history) |
 | **Terminal** | ToggleTerm with named terminals: LazyGit, K9s, Python REPL, Htop |
-| **Database UI** | nvim-dbee for browsing databases and running queries inside Neovim |
+| **Database UI** | vim-dadbod-ui for browsing databases and running SQL inside Neovim |
 | **Formatting** | conform.nvim auto-format on save |
 | **Linting** | nvim-lint (shellcheck, hadolint, tflint, yamllint, flake8, ansiblelint) |
 | **Folding** | nvim-ufo with LSP/Treesitter providers |
@@ -228,7 +228,9 @@ nvim/
 | `ansible-vim` | Ansible filetype detection (`yaml.ansible`) + improved syntax |
 | `Vim-Jinja2-Syntax` | Jinja2 / J2 template syntax highlighting |
 | `venv-selector.nvim` | Python virtual environment picker (Telescope) |
-| `nvim-dbee` | Visual database browser and query runner inside Neovim |
+| `vim-dadbod` | Database adapter and `:DB` query command |
+| `vim-dadbod-ui` | Database drawer UI with saved queries and table browsing |
+| `vim-dadbod-completion` | SQL completion for Dadbod buffers |
 | `nvim-dap` | Debug Adapter Protocol core |
 | `nvim-dap-ui` | Debug UI (variables, call stack, breakpoints, REPL) |
 | `nvim-dap-python` | Python debug adapter (uses Mason-installed debugpy) |
@@ -415,8 +417,12 @@ nvim/
 
 | Key / Command | Action |
 |---|---|
-| `<leader>od` | Open DBee database UI |
-| `:Dbee` | Open DBee manually |
+| `<leader>od` | Toggle Dadbod UI |
+| `<leader>oa` | Add database connection |
+| `<leader>of` | Find/open an existing DB buffer |
+| `:DBUI` | Open Dadbod UI manually |
+| `:DBUIAddConnection` | Add a saved connection manually |
+| `:DB <url>` | Open a DB console or run queries via vim-dadbod |
 
 ### AI Assistant
 
@@ -604,11 +610,12 @@ Use `cgn` (change next occurrence) to rename a word across a file:
 - Switching venvs automatically updates `pyright` and `ruff` to use the chosen interpreter
 - `<leader>pV` re-uses the last selected venv without showing the picker
 
-### Database Browsing (DBee)
-- Press `<leader>od` or run `:Dbee` to open the database UI.
-- Add a PostgreSQL connection string such as `postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable`.
-- If your Postgres instance is running in Docker, make sure the container publishes the port to your host, for example `docker run -p 5432:5432 ... postgres`.
-- Once connected, expand the connection in DBee's sidebar to browse schemas, tables, and run queries in scratch buffers.
+### Database Browsing (Dadbod UI)
+- Press `<leader>od` or run `:DBUI` to open the database drawer.
+- Add a connection with `<leader>oa` or `:DBUIAddConnection`.
+- For your Docker Postgres, use a URL like `postgres://wedding:YOUR_PASSWORD@127.0.0.1:5432/wedding`.
+- Open a saved query or table from the drawer, then write the SQL buffer with `:w` to execute it.
+- In the DBUI drawer, `o` or `<CR>` opens items, `A` adds a connection, `R` refreshes, and `d` deletes a saved query or buffer.
 
 ### Python Debugging (DAP)
 - `<leader>db` — toggle a breakpoint on the current line
