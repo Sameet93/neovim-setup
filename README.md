@@ -35,6 +35,7 @@ A full-featured Neovim configuration designed as a modern IDE — with a focus o
 | **File Explorer** | Neo-tree with Git status icons |
 | **Git** | Gitsigns (gutter) + Neogit (TUI) + Diffview (diffs/history) |
 | **Terminal** | ToggleTerm with named terminals: LazyGit, K9s, Python REPL, Htop |
+| **Database UI** | nvim-dbee for browsing databases and running queries inside Neovim |
 | **Formatting** | conform.nvim auto-format on save |
 | **Linting** | nvim-lint (shellcheck, hadolint, tflint, yamllint, flake8, ansiblelint) |
 | **Folding** | nvim-ufo with LSP/Treesitter providers |
@@ -227,6 +228,7 @@ nvim/
 | `ansible-vim` | Ansible filetype detection (`yaml.ansible`) + improved syntax |
 | `Vim-Jinja2-Syntax` | Jinja2 / J2 template syntax highlighting |
 | `venv-selector.nvim` | Python virtual environment picker (Telescope) |
+| `nvim-dbee` | Visual database browser and query runner inside Neovim |
 | `nvim-dap` | Debug Adapter Protocol core |
 | `nvim-dap-ui` | Debug UI (variables, call stack, breakpoints, REPL) |
 | `nvim-dap-python` | Python debug adapter (uses Mason-installed debugpy) |
@@ -408,6 +410,13 @@ nvim/
 |---|---|
 | `<leader>pv` | Open venv selector (Telescope) |
 | `<leader>pV` | Re-use last selected venv |
+
+### Database
+
+| Key / Command | Action |
+|---|---|
+| `<leader>od` | Open DBee database UI |
+| `:Dbee` | Open DBee manually |
 
 ### AI Assistant
 
@@ -594,6 +603,12 @@ Use `cgn` (change next occurrence) to rename a word across a file:
 - Detects `.venv/`, `venv/`, `~/.virtualenvs/`, pyenv, Conda, Poetry, Pipenv automatically
 - Switching venvs automatically updates `pyright` and `ruff` to use the chosen interpreter
 - `<leader>pV` re-uses the last selected venv without showing the picker
+
+### Database Browsing (DBee)
+- Press `<leader>od` or run `:Dbee` to open the database UI.
+- Add a PostgreSQL connection string such as `postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable`.
+- If your Postgres instance is running in Docker, make sure the container publishes the port to your host, for example `docker run -p 5432:5432 ... postgres`.
+- Once connected, expand the connection in DBee's sidebar to browse schemas, tables, and run queries in scratch buffers.
 
 ### Python Debugging (DAP)
 - `<leader>db` — toggle a breakpoint on the current line

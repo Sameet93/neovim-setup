@@ -66,6 +66,24 @@ return {
     },
   },
 
+  -- ─── Database UI: DBee ───────────────────────────────────────────────────
+  -- Open an interactive database browser inside Neovim. The backend binary
+  -- is installed during the plugin build step so :Dbee works out of the box.
+  {
+    "kndndrj/nvim-dbee",
+    cmd = "Dbee",
+    build = function()
+      require("dbee").install("curl")
+    end,
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+    },
+    keys = {
+      { "<leader>od", "<cmd>Dbee<CR>", desc = "Open database UI" },
+    },
+    opts = {},
+  },
+
   -- ─── DAP: Debug Adapter Protocol core ────────────────────────────────────
   {
     "mfussenegger/nvim-dap",

@@ -15,6 +15,13 @@ return {
       { "<leader>th",  "<cmd>ToggleTerm direction=horizontal<CR>",         desc = "Horizontal terminal" },
       { "<leader>tv",  "<cmd>ToggleTerm direction=vertical size=70<CR>",   desc = "Vertical terminal" },
       { "<leader>tt",  "<cmd>ToggleTerm direction=tab<CR>",                desc = "Tab terminal" },
+      -- Named TUI terminals (trigger plugin load; config re-registers the actual handler)
+      { "<leader>gG",  desc = "LazyGit" },
+      { "<leader>tk",  desc = "K9s (Kubernetes)" },
+      { "<leader>td",  desc = "LazyDocker" },
+      { "<leader>tp",  desc = "Python REPL" },
+      { "<leader>tm",  desc = "Htop (monitor)" },
+      { "<leader>tT",  desc = "Terraform console" },
     },
     opts = {
       size = function(term)
@@ -82,7 +89,7 @@ return {
         name      = "k9s",
         float_opts = { border = "curved" },
       })
-      vim.keymap.set("n", "<leader>K", function() k9s:toggle() end,
+      vim.keymap.set("n", "<leader>tk", function() k9s:toggle() end,
         { desc = "K9s (Kubernetes)" })
 
       -- ── LazyDocker ────────────────────────────────────────────────────────
@@ -97,7 +104,7 @@ return {
             { noremap = true, silent = true })
         end,
       })
-      vim.keymap.set("n", "<leader>D", function() lazydocker:toggle() end,
+      vim.keymap.set("n", "<leader>td", function() lazydocker:toggle() end,
         { desc = "LazyDocker" })
 
       -- ── Python REPL ──────────────────────────────────────────────────────

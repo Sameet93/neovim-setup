@@ -187,6 +187,7 @@ return {
         { "<leader>f",  group = "find/files" },
         { "<leader>g",  group = "git" },
         { "<leader>gh", group = "git hunks" },
+        { "<leader>o",  group = "open" },
         { "<leader>q",  group = "session" },
         { "<leader>s",  group = "splits/search&replace" },
         { "<leader>sn", group = "noice" },
