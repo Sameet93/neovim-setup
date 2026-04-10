@@ -154,13 +154,70 @@ return {
     event  = { "BufReadPost", "BufNewFile" },
     config = function()
       local lint = require("lint")
+
+      -- ── Custom helm linter (runs `helm lint <chart-root>`) ────────────────
+      -- Walks up from the current file to find the chart root (where Chart.yaml
+      -- lives), then runs helm lint on the whole chart and maps diagnostics back.
+      lint.linters.helm_lint = {
+        name = "helm_lint",
+        cmd  = "helm",
+        stdin = false,
+        args = function()
+          -- Find chart root from current buffer
+          local path  = vim.api.nvim_buf_get_name(0)
+          local dir   = vim.fn.fnamemodify(path, ":h")
+          local root  = dir
+          while dir ~= "/" and dir ~= "." do
+            if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
+              root = dir
+              break
+            end
+            local parent = vim.fn.fnamemodify(dir, ":h")
+            if parent == dir then break end
+            dir = parent
+          end
+          return { "lint", root }
+        end,
+        stream  = "stdout",
+        ignore_exitcode = true,  -- helm lint exits 1 on warnings too
+        parser = function(output)
+          local diags = {}
+          -- helm lint output format: [ERROR] / [WARNING] chart/templates/file.yaml: msg
+          -- or just: Error: ...
+          for severity, file, lnum, msg in output:gmatch("%[(%u+)%][^:]*:?%s*([^:]+%.ya?ml):(%d+):(.+)") do
+            table.insert(diags, {
+              lnum     = tonumber(lnum) - 1,
+              col      = 0,
+              message  = vim.trim(msg),
+              severity = severity == "ERROR" and vim.diagnostic.severity.ERROR
+                                              or vim.diagnostic.severity.WARN,
+              source   = "helm lint",
+            })
+          end
+          -- Lines without a file:line reference (chart-level errors)
+          if #diags == 0 then
+            for severity, msg in output:gmatch("%[(%u+)%][^\n]*\n?%s*([^\n]+)") do
+              table.insert(diags, {
+                lnum     = 0,
+                col      = 0,
+                message  = vim.trim(msg),
+                severity = severity == "ERROR" and vim.diagnostic.severity.ERROR
+                                                or vim.diagnostic.severity.WARN,
+                source   = "helm lint",
+              })
+            end
+          end
+          return diags
+        end,
+      }
+
       lint.linters_by_ft = {
         sh           = { "shellcheck" },
         bash         = { "shellcheck" },
         dockerfile   = { "hadolint" },
         terraform    = { "tflint" },
         yaml         = { "yamllint" },
-        helm         = {},                     -- no yamllint on Helm templates (Go template syntax)
+        helm         = { "helm_lint" },        -- helm lint only; yamllint never runs on helm
         ["yaml.ansible"] = { "ansiblelint" },  -- Ansible playbooks/roles
         python       = { "flake8" },
       }
