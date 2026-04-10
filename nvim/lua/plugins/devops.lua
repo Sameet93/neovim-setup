@@ -4,11 +4,18 @@
 
 return {
 
-  -- ─── Helm: filetype detection for any file inside a chart tree ───────────
-  -- Ensures .yaml/.yml/.tpl files anywhere inside a Helm chart are detected
-  -- as "helm" instead of "yaml", so yamllint is never invoked on them.
+  -- ─── Helm: syntax highlighting + filetype detection ──────────────────────
+  -- towolf/vim-helm provides vim-syntax highlighting for the Go-template +
+  -- YAML hybrid used in Helm charts and also sets the "helm" filetype for
+  -- files inside a chart tree (templates/, _helpers.tpl, etc.).
+  -- The FileType autocmd below is a fallback for files vim-helm misses
+  -- (e.g. values.yaml at the chart root, nested sub-charts).
   {
-    dir = vim.fn.stdpath("config"),  -- no plugin to install, just config
+    "towolf/vim-helm",
+    ft = { "helm" },
+  },
+  {
+    dir = vim.fn.stdpath("config"),
     name = "helm-filetype-detect",
     lazy = false,
     config = function()
@@ -25,7 +32,7 @@ return {
         return false
       end
 
-      -- Primary: vim.filetype.add for pattern-based detection
+      -- vim.filetype.add patterns (fast path, fires before any LSP/lint)
       vim.filetype.add({
         pattern = {
           [".*%.ya?ml"] = function(path) if find_chart_root(path) then return "helm" end end,
@@ -33,8 +40,7 @@ return {
         },
       })
 
-      -- Fallback: autocmd that fires AFTER filetype is already set to "yaml",
-      -- in case the built-in detection wins the priority race.
+      -- Fallback: catches files where the built-in yaml detection wins the race
       vim.api.nvim_create_autocmd("FileType", {
         pattern  = "yaml",
         callback = function(ev)
