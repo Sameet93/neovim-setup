@@ -297,7 +297,10 @@ return {
       })
 
       -- YAML (500+ schemas from SchemaStore.nvim)
+      -- Explicitly restricted to yaml/yaml.ansible — NOT helm, which uses
+      -- helm_ls and has its own embedded yamlls instance with validate=false.
       vim.lsp.config("yamlls", {
+        filetypes = { "yaml", "yaml.ansible", "yaml.docker-compose" },
         settings = {
           yaml = {
             keyOrdering = false,
