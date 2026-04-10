@@ -4,9 +4,11 @@
 
 return {
 
-  -- ─── Helm: filetype detection for templates/ files ───────────────────────
-  -- Ensures .yaml/.yml/.tpl files inside a Helm chart's templates/ directory
-  -- are detected as "helm" instead of "yaml", so yamllint is not invoked.
+  -- ─── Helm: filetype detection for any file inside a chart tree ───────────
+  -- Ensures .yaml/.yml/.tpl files anywhere inside a Helm chart are detected
+  -- as "helm" instead of "yaml", so yamllint is never invoked on them.
+  -- The guard (Chart.yaml ancestor check) prevents false positives on
+  -- non-chart yaml files.
   {
     dir = vim.fn.stdpath("config"),  -- no plugin to install, just config
     name = "helm-filetype-detect",
@@ -27,11 +29,11 @@ return {
 
       vim.filetype.add({
         pattern = {
-          -- Any .yaml/.yml/.tpl anywhere inside a Helm chart tree
-          [".*/templates/.*%.ya?ml"] = is_helm_chart,
-          [".*/templates/.*%.tpl"]   = is_helm_chart,
-          -- Catch helpers and other .tpl files outside templates/ (e.g. _helpers.tpl)
-          [".*%.tpl"] = is_helm_chart,
+          -- Match ANY .yaml/.yml/.tpl file that has a Chart.yaml somewhere
+          -- up the directory tree — covers templates/, charts/, nested sub-charts,
+          -- values files, helpers, etc.
+          [".*%.ya?ml"] = is_helm_chart,
+          [".*%.tpl"]   = is_helm_chart,
         },
       })
     end,
