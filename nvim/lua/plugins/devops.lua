@@ -7,34 +7,42 @@ return {
   -- ─── Helm: filetype detection for any file inside a chart tree ───────────
   -- Ensures .yaml/.yml/.tpl files anywhere inside a Helm chart are detected
   -- as "helm" instead of "yaml", so yamllint is never invoked on them.
-  -- The guard (Chart.yaml ancestor check) prevents false positives on
-  -- non-chart yaml files.
   {
     dir = vim.fn.stdpath("config"),  -- no plugin to install, just config
     name = "helm-filetype-detect",
     lazy = false,
     config = function()
-      -- Walk up from a file's directory and return "helm" if a Chart.yaml is found.
-      local function is_helm_chart(path)
+      local function find_chart_root(path)
         local dir = vim.fn.fnamemodify(path, ":h")
         while dir ~= "/" and dir ~= "." do
           if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
-            return "helm"
+            return true
           end
           local parent = vim.fn.fnamemodify(dir, ":h")
           if parent == dir then break end
           dir = parent
         end
+        return false
       end
 
+      -- Primary: vim.filetype.add for pattern-based detection
       vim.filetype.add({
         pattern = {
-          -- Match ANY .yaml/.yml/.tpl file that has a Chart.yaml somewhere
-          -- up the directory tree — covers templates/, charts/, nested sub-charts,
-          -- values files, helpers, etc.
-          [".*%.ya?ml"] = is_helm_chart,
-          [".*%.tpl"]   = is_helm_chart,
+          [".*%.ya?ml"] = function(path) if find_chart_root(path) then return "helm" end end,
+          [".*%.tpl"]   = function(path) if find_chart_root(path) then return "helm" end end,
         },
+      })
+
+      -- Fallback: autocmd that fires AFTER filetype is already set to "yaml",
+      -- in case the built-in detection wins the priority race.
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern  = "yaml",
+        callback = function(ev)
+          local path = vim.api.nvim_buf_get_name(ev.buf)
+          if path ~= "" and find_chart_root(path) then
+            vim.bo[ev.buf].filetype = "helm"
+          end
+        end,
       })
     end,
   },
