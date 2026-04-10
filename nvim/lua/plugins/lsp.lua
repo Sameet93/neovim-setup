@@ -345,7 +345,10 @@ return {
           ["helm-ls"] = {
             yamlls = {
               path   = "yaml-language-server",
-              config = { schemas = { kubernetes = "**" } },
+              config = {
+                schemas   = { kubernetes = "**" },
+                validate  = false,  -- Helm {{ }} expressions are not valid YAML
+              },
             },
           },
         },
