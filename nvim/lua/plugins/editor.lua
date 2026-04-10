@@ -160,6 +160,7 @@ return {
         dockerfile   = { "hadolint" },
         terraform    = { "tflint" },
         yaml         = { "yamllint" },
+        helm         = {},                     -- no yamllint on Helm templates (Go template syntax)
         ["yaml.ansible"] = { "ansiblelint" },  -- Ansible playbooks/roles
         python       = { "flake8" },
       }

@@ -4,6 +4,45 @@
 
 return {
 
+  -- ─── Helm: filetype detection for templates/ files ───────────────────────
+  -- Ensures .yaml/.yml/.tpl files inside a Helm chart's templates/ directory
+  -- are detected as "helm" instead of "yaml", so yamllint is not invoked.
+  {
+    dir = vim.fn.stdpath("config"),  -- no plugin to install, just config
+    name = "helm-filetype-detect",
+    lazy = false,
+    config = function()
+      vim.filetype.add({
+        pattern = {
+          -- Match *.yaml / *.yml / *.tpl under any templates/ directory;
+          -- confirm a Chart.yaml exists somewhere up the tree.
+          [".*/templates/.*%.ya?ml"] = function(path)
+            local dir = vim.fn.fnamemodify(path, ":h")
+            while dir ~= "/" and dir ~= "." do
+              if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
+                return "helm"
+              end
+              local parent = vim.fn.fnamemodify(dir, ":h")
+              if parent == dir then break end
+              dir = parent
+            end
+          end,
+          [".*/templates/.*%.tpl"] = function(path)
+            local dir = vim.fn.fnamemodify(path, ":h")
+            while dir ~= "/" and dir ~= "." do
+              if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
+                return "helm"
+              end
+              local parent = vim.fn.fnamemodify(dir, ":h")
+              if parent == dir then break end
+              dir = parent
+            end
+          end,
+        },
+      })
+    end,
+  },
+
   -- ─── Ansible: filetype detection + improved syntax ───────────────────────
   -- Detects Ansible playbooks/roles/tasks as "yaml.ansible" filetype so
   -- ansible-language-server (ansiblels) and ansiblelint activate correctly.
