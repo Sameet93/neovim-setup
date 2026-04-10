@@ -12,32 +12,26 @@ return {
     name = "helm-filetype-detect",
     lazy = false,
     config = function()
+      -- Walk up from a file's directory and return "helm" if a Chart.yaml is found.
+      local function is_helm_chart(path)
+        local dir = vim.fn.fnamemodify(path, ":h")
+        while dir ~= "/" and dir ~= "." do
+          if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
+            return "helm"
+          end
+          local parent = vim.fn.fnamemodify(dir, ":h")
+          if parent == dir then break end
+          dir = parent
+        end
+      end
+
       vim.filetype.add({
         pattern = {
-          -- Match *.yaml / *.yml / *.tpl under any templates/ directory;
-          -- confirm a Chart.yaml exists somewhere up the tree.
-          [".*/templates/.*%.ya?ml"] = function(path)
-            local dir = vim.fn.fnamemodify(path, ":h")
-            while dir ~= "/" and dir ~= "." do
-              if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
-                return "helm"
-              end
-              local parent = vim.fn.fnamemodify(dir, ":h")
-              if parent == dir then break end
-              dir = parent
-            end
-          end,
-          [".*/templates/.*%.tpl"] = function(path)
-            local dir = vim.fn.fnamemodify(path, ":h")
-            while dir ~= "/" and dir ~= "." do
-              if vim.fn.filereadable(dir .. "/Chart.yaml") == 1 then
-                return "helm"
-              end
-              local parent = vim.fn.fnamemodify(dir, ":h")
-              if parent == dir then break end
-              dir = parent
-            end
-          end,
+          -- Any .yaml/.yml/.tpl anywhere inside a Helm chart tree
+          [".*/templates/.*%.ya?ml"] = is_helm_chart,
+          [".*/templates/.*%.tpl"]   = is_helm_chart,
+          -- Catch helpers and other .tpl files outside templates/ (e.g. _helpers.tpl)
+          [".*%.tpl"] = is_helm_chart,
         },
       })
     end,
